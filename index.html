@@ -1,0 +1,1047 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Peer Feedback Tally</title>
+<style>
+:root{
+  --paper:#e8ebe6;
+  --card:#fbfcf9;
+  --card-2:#f2f4f0;
+  --ink:#232b27;
+  --ink-soft:#5d6862;
+  --line:#c9d0c8;
+  --line-soft:#dfe4dd;
+  --pine:#2f5d50;
+  --pine-tint:#dfeae4;
+  --mul:#7a3b5c;
+  --mul-tint:#f1e3ea;
+  --focus:#1f6f8b;
+  --radius:7px;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --paper:#171b19;
+    --card:#202623;
+    --card-2:#262d29;
+    --ink:#e4e9e4;
+    --ink-soft:#9aa69f;
+    --line:#39423d;
+    --line-soft:#2e3531;
+    --pine:#86c4ac;
+    --pine-tint:#1f3a32;
+    --mul:#d39ab6;
+    --mul-tint:#3a2430;
+    --focus:#6fb6cf;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-size:15px;
+  line-height:1.45;
+  -webkit-text-size-adjust:100%;
+}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+h1,h2,h3{margin:0;font-weight:600}
+.num{font-variant-numeric:tabular-nums}
+
+/* ---------- top bar ---------- */
+#bar{
+  position:sticky;top:0;z-index:20;
+  display:flex;align-items:stretch;gap:14px;flex-wrap:wrap;
+  padding:0 16px;
+  background:var(--card);
+  border-bottom:1px solid var(--line);
+}
+.brand{
+  display:flex;align-items:center;gap:9px;
+  font-family:var(--serif);font-size:17px;padding:10px 0;white-space:nowrap;
+}
+.brand span{width:11px;height:11px;border:2px solid var(--pine);border-radius:50%;display:inline-block}
+#tabs{display:flex;align-items:stretch;gap:2px;overflow-x:auto}
+.tab{
+  border:0;background:none;padding:12px 12px 10px;
+  border-bottom:3px solid transparent;color:var(--ink-soft);white-space:nowrap;
+}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--pine);font-weight:600}
+.bar-right{margin-left:auto;display:flex;align-items:center;gap:8px;padding:8px 0;flex-wrap:wrap}
+.chip-select{
+  background:var(--card-2);border:1px solid var(--line);border-radius:var(--radius);
+  padding:6px 8px;
+}
+.viewbtn{
+  background:none;border:1px solid transparent;border-radius:var(--radius);
+  padding:6px 11px;color:var(--ink-soft);
+}
+.viewbtn[aria-current="true"]{background:var(--card-2);border-color:var(--line);color:var(--ink)}
+
+/* ---------- layout ---------- */
+main{max-width:1180px;margin:0 auto;padding:20px 16px 90px}
+.split{display:grid;grid-template-columns:270px minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:840px){.split{grid-template-columns:1fr}}
+.panel{
+  background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+}
+.panel-head{
+  display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;
+  padding:12px 14px;border-bottom:1px solid var(--line-soft);
+}
+.panel-head h2{font-family:var(--serif);font-size:19px;font-weight:600}
+.panel-body{padding:14px}
+.muted{color:var(--ink-soft);font-size:13px}
+
+/* ---------- roster ---------- */
+#roster{max-height:calc(100vh - 150px);overflow:auto}
+.rosterfilter{width:100%;padding:8px 10px;background:var(--card-2);border:1px solid var(--line);border-radius:var(--radius)}
+.stu{
+  display:block;width:100%;text-align:left;background:none;border:0;
+  border-bottom:1px solid var(--line-soft);padding:9px 14px;
+}
+.stu:hover{background:var(--card-2)}
+.stu[aria-current="true"]{background:var(--pine-tint)}
+.stu-name{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.stu-name b{font-weight:500}
+.stu-count{font-size:12px;color:var(--ink-soft)}
+.ticks{display:flex;gap:1px;margin-top:6px;height:9px}
+.ticks i{width:3px;background:var(--line);border-radius:1px;display:block}
+.ticks i.on{background:var(--pine)}
+.ticks i.gap{background:none;width:3px}
+.stu.done .stu-count{color:var(--pine);font-weight:600}
+
+/* ---------- score rows ---------- */
+.critrow{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;
+  padding:7px 0 7px 12px;border-left:3px solid transparent;
+}
+.critrow.active{border-left-color:var(--pine);background:var(--card-2)}
+.critlabel{font-size:15px}
+.dots{display:flex;gap:6px}
+.dot{
+  width:38px;height:38px;border-radius:50%;
+  border:1.5px solid var(--line);background:var(--card);
+  color:var(--ink-soft);font-size:14px;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .08s ease;
+}
+.dot:hover{border-color:var(--pine)}
+.dot[aria-pressed="true"]{background:var(--pine);border-color:var(--pine);color:#fff;font-weight:600}
+@media (prefers-color-scheme:dark){.dot[aria-pressed="true"]{color:#12201b}}
+@media (max-width:480px){.dot{width:34px;height:34px}.critrow{grid-template-columns:1fr;gap:4px}}
+
+/* ---------- tag columns ---------- */
+.tagcols{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+@media (max-width:640px){.tagcols{grid-template-columns:1fr}}
+.tagcol h3{font-size:13px;font-weight:600;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--line-soft)}
+.tagcol.plus h3{color:var(--pine);border-bottom-color:var(--pine)}
+.tagcol.minus h3{color:var(--mul);border-bottom-color:var(--mul)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{
+  border:1px solid var(--line);background:var(--card);
+  border-radius:99px;padding:5px 11px;font-size:13px;color:var(--ink-soft);
+}
+.tagcol.plus .chip[aria-pressed="true"]{background:var(--pine);border-color:var(--pine);color:#fff;font-weight:500}
+.tagcol.minus .chip[aria-pressed="true"]{background:var(--mul);border-color:var(--mul);color:#fff;font-weight:500}
+@media (prefers-color-scheme:dark){
+  .tagcol.plus .chip[aria-pressed="true"],.tagcol.minus .chip[aria-pressed="true"]{color:#141a17}
+}
+.chip.add{border-style:dashed;color:var(--ink-soft)}
+
+/* ---------- buttons ---------- */
+.btn{
+  background:var(--pine);color:#fff;border:1px solid var(--pine);
+  border-radius:var(--radius);padding:9px 16px;font-weight:500;
+}
+@media (prefers-color-scheme:dark){.btn{color:#12201b}}
+.btn.ghost{background:var(--card);color:var(--ink);border-color:var(--line)}
+.btn.small{padding:5px 10px;font-size:13px}
+.btn.danger{background:var(--card);color:var(--mul);border-color:var(--mul)}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.spacer{flex:1}
+
+/* ---------- logged reviews ---------- */
+.logged{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.logitem{
+  border:1px solid var(--line);background:var(--card-2);border-radius:var(--radius);
+  padding:4px 9px;font-size:12.5px;
+}
+.logitem.editing{border-color:var(--pine);background:var(--pine-tint)}
+
+/* ---------- tables ---------- */
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:7px 9px;text-align:left;border-bottom:1px solid var(--line-soft)}
+th{font-size:12.5px;color:var(--ink-soft);font-weight:600;white-space:nowrap}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+tbody tr:hover{background:var(--card-2)}
+.wrap-scroll{overflow-x:auto}
+
+/* ---------- summary ---------- */
+.bigscore{font-family:var(--serif);font-size:42px;line-height:1;font-variant-numeric:tabular-nums}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
+.stat{border:1px solid var(--line-soft);border-radius:var(--radius);padding:11px 13px;background:var(--card-2)}
+.stat .k{font-size:12.5px;color:var(--ink-soft)}
+.stat .v{font-size:21px;font-variant-numeric:tabular-nums;margin-top:2px}
+.distbar{display:flex;height:7px;border-radius:99px;overflow:hidden;background:var(--line-soft);margin-top:5px}
+.distbar i{display:block;height:100%}
+.tallyline{display:flex;align-items:center;gap:9px;padding:5px 0;border-bottom:1px solid var(--line-soft)}
+.tallyline .lbl{flex:1}
+.count{
+  min-width:30px;text-align:center;border-radius:var(--radius);padding:2px 6px;
+  font-variant-numeric:tabular-nums;font-size:13px;font-weight:600;
+}
+.count.p{background:var(--pine-tint);color:var(--pine)}
+.count.m{background:var(--mul-tint);color:var(--mul)}
+.count.zero{background:none;color:var(--line);font-weight:400}
+.notelist li{margin-bottom:7px;font-family:var(--serif);font-size:15px}
+
+/* ---------- setup ---------- */
+.field{margin-bottom:16px}
+.field label{display:block;font-size:13px;color:var(--ink-soft);margin-bottom:5px}
+.field input[type=text],.field input[type=number],.field textarea{
+  width:100%;padding:8px 10px;background:var(--card-2);
+  border:1px solid var(--line);border-radius:var(--radius);
+}
+.field textarea{min-height:150px;resize:vertical;font-family:var(--sans)}
+.listedit{display:flex;flex-wrap:wrap;gap:6px}
+.listedit .chip{cursor:default;display:flex;align-items:center;gap:7px}
+.listedit .chip button{border:0;background:none;color:var(--ink-soft);padding:0 1px;font-size:15px;line-height:1}
+
+/* ---------- toast ---------- */
+#toast{
+  position:fixed;left:50%;bottom:22px;transform:translateX(-50%);
+  background:var(--ink);color:var(--paper);padding:9px 16px;border-radius:99px;
+  font-size:14px;z-index:40;box-shadow:0 3px 14px rgba(0,0,0,.2);
+  display:flex;gap:12px;align-items:center;
+}
+#toast button{background:none;border:0;color:var(--paper);text-decoration:underline;padding:0}
+#toast[hidden]{display:none}
+.warnbar{
+  background:var(--mul-tint);color:var(--mul);border:1px solid var(--mul);
+  border-radius:var(--radius);padding:9px 13px;margin-bottom:16px;font-size:14px;
+}
+.kbd{
+  border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;
+  padding:0 5px;font-size:12px;font-family:var(--sans);background:var(--card-2);
+}
+.empty{text-align:center;padding:40px 20px;color:var(--ink-soft)}
+
+/* ---------- print ---------- */
+@media print{
+  #bar,#toast,#roster,.noprint,.warnbar{display:none !important}
+  body{background:#fff;color:#000}
+  main{max-width:none;padding:0}
+  .panel{border:0}
+  .split{display:block}
+}
+</style>
+</head>
+<body>
+
+<header id="bar">
+  <div class="brand"><span></span>Peer Feedback Tally</div>
+  <nav id="tabs" role="tablist" aria-label="Sections"></nav>
+  <div class="bar-right">
+    <select id="speechSelect" class="chip-select" aria-label="Speech"></select>
+    <button class="viewbtn" data-view="entry">Enter</button>
+    <button class="viewbtn" data-view="student">Student</button>
+    <button class="viewbtn" data-view="class">Class</button>
+    <button class="viewbtn" data-view="setup">Setup</button>
+  </div>
+</header>
+
+<main id="app"></main>
+<div id="toast" hidden></div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============ storage ============ */
+var LS = "peerfeedback.v1";
+var db, draft = null, undoStack = null;
+
+function uid(p){ return (p||"") + Math.random().toString(36).slice(2,9); }
+
+function defaults(){
+  var tagLabels = ["Clear thread","Confident","Eye contact","Volume","Pace",
+    "Organization","Strong opening","Strong conclusion","Funny","Energy",
+    "Filler words","Notecard use","Visual aid","Transitions","Gestures",
+    "Topic choice","Evidence and support","Posture"];
+  return {
+    version: 1,
+    criteria: [
+      {id:"c_thread", label:"Clear thread"},
+      {id:"c_conf",   label:"Confident"},
+      {id:"c_eyes",   label:"Looked at the class"},
+      {id:"c_hear",   label:"Easy to hear and follow"}
+    ],
+    tags: tagLabels.map(function(t){ return {id:uid("t_"), label:t}; }),
+    speeches: [{id:"sp_1", label:"Speech 1"}],
+    sections: [1,2,3,4].map(function(n){
+      return {id:"sec_"+n, name:"Section "+n, target:24, students:[]};
+    }),
+    reviews: [],
+    ui: {sectionId:"sec_1", speechId:"sp_1", studentId:null, view:"setup", filter:""},
+    sinceExport: 0
+  };
+}
+
+function load(){
+  try {
+    var raw = localStorage.getItem(LS);
+    if (!raw) return defaults();
+    var d = JSON.parse(raw);
+    var base = defaults();
+    for (var k in base) if (!(k in d)) d[k] = base[k];
+    if (!d.ui) d.ui = base.ui;
+    return d;
+  } catch(e){
+    console.warn("Could not read saved data", e);
+    return defaults();
+  }
+}
+
+function save(){
+  try { localStorage.setItem(LS, JSON.stringify(db)); }
+  catch(e){ toast("Browser storage is full or blocked. Export a backup now."); }
+}
+
+/* ============ helpers ============ */
+function esc(s){
+  return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+  });
+}
+function fmt(x, d){ return x == null ? "\u2013" : Number(x).toFixed(d == null ? 2 : d); }
+function byId(list, id){
+  for (var i=0;i<list.length;i++) if (list[i].id === id) return list[i];
+  return null;
+}
+function section(){ return byId(db.sections, db.ui.sectionId) || db.sections[0]; }
+function speech(){ return byId(db.speeches, db.ui.speechId) || db.speeches[0]; }
+function student(){
+  var s = section();
+  return s ? byId(s.students, db.ui.studentId) : null;
+}
+function reviewsFor(studentId, speechId){
+  return db.reviews.filter(function(r){
+    return r.studentId === studentId && (!speechId || r.speechId === speechId);
+  });
+}
+
+var toastTimer = null;
+function toast(msg, actionLabel, action){
+  var t = document.getElementById("toast");
+  t.innerHTML = "<span>" + esc(msg) + "</span>";
+  if (actionLabel){
+    var b = document.createElement("button");
+    b.textContent = actionLabel;
+    b.onclick = function(){ t.hidden = true; action(); };
+    t.appendChild(b);
+  }
+  t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ t.hidden = true; }, actionLabel ? 7000 : 2600);
+}
+
+/* ============ stats ============ */
+function computeStats(reviews){
+  var per = db.criteria.map(function(c){
+    var vals = [];
+    reviews.forEach(function(r){
+      var v = r.scores && r.scores[c.id];
+      if (typeof v === "number") vals.push(v);
+    });
+    var sum = 0, dist = [0,0,0,0,0];
+    vals.forEach(function(v){ sum += v; dist[v-1]++; });
+    return {
+      id:c.id, label:c.label, n:vals.length, sum:sum,
+      mean: vals.length ? sum / vals.length : null,
+      dist: dist
+    };
+  });
+  var n = 0, sum = 0;
+  per.forEach(function(p){ n += p.n; sum += p.sum; });
+  return {
+    per: per, items: n, sum: sum,
+    mean: n ? sum / n : null,
+    possible: n * 5,
+    pct: n ? (sum / (n * 5)) * 100 : null,
+    count: reviews.length
+  };
+}
+
+function tagTally(reviews){
+  var m = {};
+  db.tags.forEach(function(t){ m[t.id] = {id:t.id, label:t.label, plus:0, minus:0}; });
+  reviews.forEach(function(r){
+    (r.plus  || []).forEach(function(id){ if (m[id]) m[id].plus++; });
+    (r.minus || []).forEach(function(id){ if (m[id]) m[id].minus++; });
+  });
+  return Object.keys(m).map(function(k){ return m[k]; });
+}
+
+/* ============ draft ============ */
+function newDraft(){
+  draft = {id:null, scores:{}, plus:[], minus:[], note:"", active:0};
+}
+function draftDirty(){
+  if (!draft) return false;
+  return Object.keys(draft.scores).length > 0 || draft.plus.length > 0 ||
+         draft.minus.length > 0 || draft.note.trim() !== "";
+}
+function loadDraft(review){
+  draft = {
+    id: review.id,
+    scores: Object.assign({}, review.scores),
+    plus: (review.plus || []).slice(),
+    minus: (review.minus || []).slice(),
+    note: review.note || "",
+    active: 0
+  };
+}
+function saveDraft(){
+  if (!draftDirty()){ toast("Nothing to save yet."); return; }
+  var stu = student();
+  if (!stu){ toast("Pick a student first."); return; }
+  if (draft.id){
+    var r = null;
+    for (var i=0;i<db.reviews.length;i++) if (db.reviews[i].id === draft.id) r = db.reviews[i];
+    if (r){
+      r.scores = draft.scores; r.plus = draft.plus;
+      r.minus = draft.minus; r.note = draft.note;
+    }
+    toast("Review updated.");
+  } else {
+    var rec = {
+      id: uid("r_"), sectionId: section().id, studentId: stu.id, speechId: speech().id,
+      scores: draft.scores, plus: draft.plus, minus: draft.minus, note: draft.note,
+      at: Date.now()
+    };
+    db.reviews.push(rec);
+    db.sinceExport = (db.sinceExport || 0) + 1;
+    undoStack = rec.id;
+    toast("Saved review " + reviewsFor(stu.id, speech().id).length + ".", "Undo", function(){
+      db.reviews = db.reviews.filter(function(x){ return x.id !== undoStack; });
+      save(); render();
+    });
+  }
+  newDraft();
+  save(); render();
+}
+
+/* ============ rendering ============ */
+function render(){
+  renderBar();
+  var app = document.getElementById("app");
+  var v = db.ui.view;
+  if (v === "entry")        app.innerHTML = viewEntry();
+  else if (v === "student") app.innerHTML = viewStudent();
+  else if (v === "class")   app.innerHTML = viewClass();
+  else                      app.innerHTML = viewSetup();
+  var f = document.querySelector(".rosterfilter");
+  if (f && db.ui.filter) f.value = db.ui.filter;
+}
+
+function renderBar(){
+  document.getElementById("tabs").innerHTML = db.sections.map(function(s){
+    var n = s.students.length;
+    return '<button class="tab" role="tab" data-act="section" data-id="'+s.id+'" aria-selected="'+
+      (s.id === db.ui.sectionId)+'">'+esc(s.name)+
+      ' <span class="muted num">'+n+'</span></button>';
+  }).join("");
+
+  document.getElementById("speechSelect").innerHTML = db.speeches.map(function(sp){
+    return '<option value="'+sp.id+'"'+(sp.id === db.ui.speechId ? " selected":"")+'>'+esc(sp.label)+'</option>';
+  }).join("");
+
+  var btns = document.querySelectorAll(".viewbtn");
+  for (var i=0;i<btns.length;i++){
+    btns[i].setAttribute("aria-current", btns[i].dataset.view === db.ui.view ? "true" : "false");
+  }
+}
+
+function rosterHTML(){
+  var s = section();
+  var sp = speech();
+  var filter = (db.ui.filter || "").toLowerCase();
+  if (!s.students.length){
+    return '<div class="panel"><div class="panel-body empty">No students in '+esc(s.name)+
+      '.<br><button class="btn small ghost" style="margin-top:10px" data-act="go" data-view="setup">Add your roster</button></div></div>';
+  }
+  var rows = s.students.filter(function(st){
+    return !filter || st.name.toLowerCase().indexOf(filter) > -1;
+  }).map(function(st){
+    var c = reviewsFor(st.id, sp.id).length;
+    var target = s.target || 24;
+    var ticks = "";
+    for (var i=0;i<target;i++){
+      ticks += '<i class="'+(i < c ? "on":"")+'"></i>' + ((i+1) % 5 === 0 ? '<i class="gap"></i>' : "");
+    }
+    if (c > target) ticks += '<i class="on"></i>';
+    return '<button class="stu'+(c >= target ? " done":"")+'" data-act="student" data-id="'+st.id+'" aria-current="'+
+      (st.id === db.ui.studentId)+'">'+
+      '<span class="stu-name"><b>'+esc(st.name)+'</b><span class="stu-count num">'+c+'/'+target+'</span></span>'+
+      '<span class="ticks">'+ticks+'</span></button>';
+  }).join("");
+  return '<div class="panel" id="roster">'+
+    '<div class="panel-body" style="padding:10px"><input class="rosterfilter" placeholder="Find a student" data-act="filter"></div>'+
+    rows + '</div>';
+}
+
+function viewEntry(){
+  var stu = student();
+  var right;
+  if (!stu){
+    right = '<div class="panel"><div class="panel-body empty">Pick a student on the left, then transcribe their ballots one at a time.</div></div>';
+  } else {
+    var sp = speech();
+    var logged = reviewsFor(stu.id, sp.id);
+    var next = draft && draft.id ? null : logged.length + 1;
+    var s = section();
+
+    var crits = db.criteria.map(function(c, i){
+      var val = draft.scores[c.id];
+      var dots = [1,2,3,4,5].map(function(v){
+        return '<button class="dot" data-act="score" data-crit="'+c.id+'" data-val="'+v+
+          '" aria-pressed="'+(val === v)+'" aria-label="'+esc(c.label)+' '+v+'">'+v+'</button>';
+      }).join("");
+      return '<div class="critrow'+(draft.active === i ? " active":"")+'">'+
+        '<div class="critlabel">'+esc(c.label)+'</div><div class="dots">'+dots+'</div></div>';
+    }).join("");
+
+    var cols = [["plus","Did well"],["minus","Work on"]].map(function(pair){
+      var kind = pair[0];
+      var chips = db.tags.map(function(t){
+        var on = draft[kind].indexOf(t.id) > -1;
+        return '<button class="chip" data-act="tag" data-kind="'+kind+'" data-id="'+t.id+
+          '" aria-pressed="'+on+'">'+esc(t.label)+'</button>';
+      }).join("");
+      chips += '<button class="chip add" data-act="addtag" data-kind="'+kind+'">+ category</button>';
+      return '<div class="tagcol '+kind+'"><h3>'+pair[1]+'</h3><div class="chips">'+chips+'</div></div>';
+    }).join("");
+
+    var log = logged.map(function(r, i){
+      var line = db.criteria.map(function(c){
+        return r.scores[c.id] == null ? "\u2013" : r.scores[c.id];
+      }).join("/");
+      return '<button class="logitem'+(draft.id === r.id ? " editing":"")+'" data-act="edit" data-id="'+r.id+
+        '" title="Click to edit">'+(i+1)+'. <span class="num">'+line+'</span></button>';
+    }).join("");
+
+    right =
+    '<div class="panel">'+
+      '<div class="panel-head">'+
+        '<h2>'+esc(stu.name)+'</h2>'+
+        '<span class="muted">'+esc(s.name)+' \u00b7 '+esc(sp.label)+'</span>'+
+        '<span class="spacer"></span>'+
+        '<span class="muted num">'+(draft.id ? "editing a saved ballot" : "ballot "+next+" of "+(s.target||24))+'</span>'+
+      '</div>'+
+      '<div class="panel-body">'+
+        crits+
+        '<div class="tagcols">'+cols+'</div>'+
+        '<div class="field" style="margin-top:16px;margin-bottom:10px">'+
+          '<label for="note">Anything worth quoting back (optional)</label>'+
+          '<input type="text" id="note" data-act="note" value="'+esc(draft.note)+'" placeholder="\u201cLoved the story about your grandma\u201d">'+
+        '</div>'+
+        '<div class="row">'+
+          '<button class="btn" data-act="save">'+(draft.id ? "Update ballot" : "Save ballot")+'</button>'+
+          (draft.id ? '<button class="btn ghost small" data-act="cancel">Cancel edit</button>'+
+                      '<button class="btn danger small" data-act="delete" data-id="'+draft.id+'">Delete</button>' : "")+
+          '<span class="spacer"></span>'+
+          '<span class="muted">Type <span class="kbd">1</span>\u2013<span class="kbd">5</span> to fill rows in order, <span class="kbd">Enter</span> to save</span>'+
+        '</div>'+
+        (logged.length ? '<div style="margin-top:18px"><div class="muted">Saved ballots for this speech</div><div class="logged">'+log+'</div></div>' : "")+
+      '</div>'+
+    '</div>';
+  }
+  return warnHTML() + '<div class="split">'+rosterHTML()+right+'</div>';
+}
+
+function viewStudent(){
+  var stu = student();
+  if (!stu) return warnHTML() + '<div class="split">'+rosterHTML()+
+    '<div class="panel"><div class="panel-body empty">Pick a student to see their totals.</div></div></div>';
+
+  var sp = speech();
+  var rs = reviewsFor(stu.id, sp.id);
+  var st = computeStats(rs);
+  var tags = tagTally(rs).filter(function(t){ return t.plus || t.minus; })
+    .sort(function(a,b){ return (b.plus + b.minus) - (a.plus + a.minus); });
+
+  var critRows = st.per.map(function(p){
+    var bar = p.dist.map(function(count, i){
+      if (!count) return "";
+      var shade = [0.30, 0.45, 0.60, 0.78, 1][i];
+      return '<i style="width:'+(count / p.n * 100)+'%;background:var(--pine);opacity:'+shade+'"></i>';
+    }).join("");
+    return '<tr><td>'+esc(p.label)+'</td><td class="n">'+fmt(p.mean)+'</td><td class="n">'+p.sum+
+      '</td><td class="n">'+(p.n * 5)+'</td><td style="min-width:130px">'+
+      (p.n ? '<div class="distbar">'+bar+'</div><div class="muted num">'+
+        p.dist.map(function(c,i){ return (i+1)+":"+c; }).join("  ")+'</div>' : '<span class="muted">no scores</span>')+
+      '</td></tr>';
+  }).join("");
+
+  var tagRows = tags.map(function(t){
+    return '<div class="tallyline"><span class="lbl">'+esc(t.label)+'</span>'+
+      '<span class="count p'+(t.plus ? "":" zero")+'" title="said they did this well">+'+t.plus+'</span>'+
+      '<span class="count m'+(t.minus ? "":" zero")+'" title="said to work on this">\u2013'+t.minus+'</span></div>';
+  }).join("") || '<div class="muted">No comment categories marked yet.</div>';
+
+  var notes = rs.filter(function(r){ return (r.note||"").trim(); })
+    .map(function(r){ return '<li>\u201c'+esc(r.note)+'\u201d</li>'; }).join("");
+
+  return warnHTML() + '<div class="split">'+rosterHTML()+
+    '<div class="panel">'+
+      '<div class="panel-head">'+
+        '<h2>'+esc(stu.name)+'</h2><span class="muted">'+esc(section().name)+' \u00b7 '+esc(sp.label)+'</span>'+
+        '<span class="spacer"></span>'+
+        '<button class="btn ghost small noprint" data-act="print">Print</button>'+
+      '</div>'+
+      '<div class="panel-body">'+
+        '<div class="grid3" style="margin-bottom:18px">'+
+          '<div class="stat"><div class="k">Ballots counted</div><div class="v num">'+st.count+'</div></div>'+
+          '<div class="stat"><div class="k">Cumulative score</div><div class="v num">'+st.sum+' / '+st.possible+'</div></div>'+
+          '<div class="stat"><div class="k">Average per category</div><div class="v num">'+fmt(st.mean)+' / 5</div></div>'+
+          '<div class="stat"><div class="k">Percent of possible</div><div class="v num">'+fmt(st.pct,1)+'%</div></div>'+
+        '</div>'+
+        '<div class="wrap-scroll"><table>'+
+          '<thead><tr><th>Category</th><th class="n">Mean</th><th class="n">Sum</th><th class="n">Possible</th><th>Spread of circled scores</th></tr></thead>'+
+          '<tbody>'+critRows+'</tbody></table></div>'+
+        '<h3 style="margin:22px 0 4px">Comment tally</h3>'+
+        '<div class="muted" style="margin-bottom:8px">Left number is praise, right number is needs work.</div>'+
+        tagRows+
+        (notes ? '<h3 style="margin:22px 0 8px">Comments worth quoting</h3><ul class="notelist">'+notes+'</ul>' : "")+
+      '</div>'+
+    '</div></div>';
+}
+
+function viewClass(){
+  var s = section(), sp = speech();
+  if (!s.students.length) return warnHTML() +
+    '<div class="panel"><div class="panel-body empty">No students in '+esc(s.name)+' yet.</div></div>';
+
+  var rows = s.students.map(function(stu){
+    var rs = reviewsFor(stu.id, sp.id);
+    var st = computeStats(rs);
+    var tt = tagTally(rs);
+    var topP = tt.slice().sort(function(a,b){ return b.plus - a.plus; })[0];
+    var topM = tt.slice().sort(function(a,b){ return b.minus - a.minus; })[0];
+    var cells = st.per.map(function(p){ return '<td class="n">'+fmt(p.mean)+'</td>'; }).join("");
+    return '<tr>'+
+      '<td><button class="btn ghost small" data-act="student" data-id="'+stu.id+'">'+esc(stu.name)+'</button></td>'+
+      '<td class="n">'+st.count+'</td>'+ cells +
+      '<td class="n">'+fmt(st.mean)+'</td>'+
+      '<td class="n">'+(st.count ? st.sum+" / "+st.possible : "\u2013")+'</td>'+
+      '<td class="muted">'+(topP && topP.plus ? esc(topP.label)+' ('+topP.plus+')' : "\u2013")+'</td>'+
+      '<td class="muted">'+(topM && topM.minus ? esc(topM.label)+' ('+topM.minus+')' : "\u2013")+'</td>'+
+      '</tr>';
+  }).join("");
+
+  var heads = db.criteria.map(function(c){ return '<th class="n">'+esc(c.label)+'</th>'; }).join("");
+
+  return warnHTML() +
+    '<div class="panel">'+
+      '<div class="panel-head"><h2>'+esc(s.name)+'</h2><span class="muted">'+esc(sp.label)+
+        ' \u00b7 '+s.students.length+' students \u00b7 '+reviewsBySection(s.id, sp.id)+' ballots logged</span>'+
+        '<span class="spacer"></span>'+
+        '<button class="btn ghost small noprint" data-act="csv-summary">Summary CSV</button>'+
+        '<button class="btn ghost small noprint" data-act="csv-raw">Every ballot CSV</button>'+
+      '</div>'+
+      '<div class="panel-body wrap-scroll"><table><thead><tr>'+
+        '<th>Student</th><th class="n">Ballots</th>'+heads+
+        '<th class="n">Mean</th><th class="n">Cumulative</th><th>Top praise</th><th>Top work-on</th>'+
+      '</tr></thead><tbody>'+rows+'</tbody></table></div>'+
+    '</div>';
+}
+
+function reviewsBySection(secId, spId){
+  return db.reviews.filter(function(r){
+    return r.sectionId === secId && r.speechId === spId;
+  }).length;
+}
+
+function viewSetup(){
+  var s = section();
+  var names = s.students.map(function(x){ return x.name; }).join("\n");
+
+  var critList = db.criteria.map(function(c){
+    return '<span class="chip">'+esc(c.label)+
+      '<button data-act="rmcrit" data-id="'+c.id+'" title="Remove">\u00d7</button></span>';
+  }).join("");
+  var tagList = db.tags.map(function(t){
+    return '<span class="chip">'+esc(t.label)+
+      '<button data-act="rmtag" data-id="'+t.id+'" title="Remove">\u00d7</button></span>';
+  }).join("");
+  var spList = db.speeches.map(function(sp){
+    return '<span class="chip">'+esc(sp.label)+
+      '<button data-act="rmspeech" data-id="'+sp.id+'" title="Remove">\u00d7</button></span>';
+  }).join("");
+
+  return warnHTML() +
+  '<div class="split" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr)">'+
+    '<div class="panel">'+
+      '<div class="panel-head"><h2>'+esc(s.name)+'</h2><span class="muted">roster and settings</span></div>'+
+      '<div class="panel-body">'+
+        '<div class="field"><label for="secname">Section name</label>'+
+          '<input type="text" id="secname" data-act="secname" value="'+esc(s.name)+'"></div>'+
+        '<div class="field"><label for="target">Peer reviewers per speech</label>'+
+          '<input type="number" id="target" data-act="target" min="1" max="60" value="'+(s.target||24)+'"></div>'+
+        '<div class="field"><label for="roster">Roster, one name per line</label>'+
+          '<textarea id="roster" placeholder="Maya Rodriguez&#10;Jordan Lee&#10;...">'+esc(names)+'</textarea></div>'+
+        '<div class="row"><button class="btn" data-act="saveroster">Save roster</button>'+
+          '<span class="muted">Names that already exist keep their ballots.</span></div>'+
+      '</div>'+
+    '</div>'+
+    '<div>'+
+      '<div class="panel" style="margin-bottom:20px">'+
+        '<div class="panel-head"><h2>Scored categories</h2><span class="muted">circled 1\u20135 on the ballot</span></div>'+
+        '<div class="panel-body">'+
+          '<div class="listedit">'+critList+
+            '<button class="chip add" data-act="addcrit">+ category</button></div>'+
+          '<div class="muted" style="margin-top:10px">Removing one hides it from new ballots. Scores already saved stay in the file.</div>'+
+        '</div>'+
+      '</div>'+
+      '<div class="panel" style="margin-bottom:20px">'+
+        '<div class="panel-head"><h2>Comment categories</h2><span class="muted">what reviewers write about</span></div>'+
+        '<div class="panel-body"><div class="listedit">'+tagList+
+          '<button class="chip add" data-act="addtag2">+ category</button></div></div>'+
+      '</div>'+
+      '<div class="panel" style="margin-bottom:20px">'+
+        '<div class="panel-head"><h2>Speeches</h2><span class="muted">each one tallies separately</span></div>'+
+        '<div class="panel-body"><div class="listedit">'+spList+
+          '<button class="chip add" data-act="addspeech">+ speech</button></div></div>'+
+      '</div>'+
+      '<div class="panel">'+
+        '<div class="panel-head"><h2>Your data</h2><span class="muted">'+db.reviews.length+' ballots saved in this browser</span></div>'+
+        '<div class="panel-body">'+
+          '<div class="row">'+
+            '<button class="btn" data-act="export">Download backup</button>'+
+            '<button class="btn ghost" data-act="import">Load a backup</button>'+
+            '<button class="btn danger small" data-act="wipe">Erase everything</button>'+
+          '</div>'+
+          '<div class="muted" style="margin-top:12px">Everything lives in this browser on this device. Nothing is uploaded anywhere. Download a backup after each grading session, and load it on another computer to pick up where you left off.</div>'+
+        '</div>'+
+      '</div>'+
+    '</div>'+
+  '</div>';
+}
+
+function warnHTML(){
+  if ((db.sinceExport || 0) < 40) return "";
+  return '<div class="warnbar noprint">'+db.sinceExport+
+    ' ballots entered since your last backup. <button class="btn small ghost" data-act="export">Download backup</button></div>';
+}
+
+/* ============ roster ============ */
+function saveRoster(){
+  var s = section();
+  var text = document.getElementById("roster").value;
+  var lines = text.split("\n").map(function(x){ return x.trim(); }).filter(Boolean);
+  var kept = [], dropped = [];
+  var used = {};
+  lines.forEach(function(name){
+    var match = null;
+    s.students.forEach(function(old){
+      if (!used[old.id] && old.name.toLowerCase() === name.toLowerCase()) match = old;
+    });
+    if (match){ used[match.id] = 1; match.name = name; kept.push(match); }
+    else kept.push({id: uid("st_"), name: name});
+  });
+  s.students.forEach(function(old){
+    if (!used[old.id] && reviewsFor(old.id).length) dropped.push(old);
+  });
+  if (dropped.length){
+    var msg = "These students are no longer on the list but have ballots saved:\n\n" +
+      dropped.map(function(d){ return "  " + d.name + " (" + reviewsFor(d.id).length + ")"; }).join("\n") +
+      "\n\nSave anyway? Their ballots stay in the backup file but drop out of the totals.";
+    if (!confirm(msg)) return;
+  }
+  s.students = kept;
+  if (!byId(s.students, db.ui.studentId)) db.ui.studentId = kept.length ? kept[0].id : null;
+  save(); render();
+  toast(kept.length + " students saved to " + s.name + ".");
+}
+
+/* ============ export / import ============ */
+function download(name, text, type){
+  var blob = new Blob([text], {type: type || "text/plain;charset=utf-8"});
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){
+    if (URL.revokeObjectURL) URL.revokeObjectURL(a.href);
+    a.remove();
+  }, 500);
+}
+function stamp(){
+  var d = new Date();
+  function p(n){ return (n<10?"0":"")+n; }
+  return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate());
+}
+function exportJSON(){
+  download("peer-feedback-backup-"+stamp()+".json", JSON.stringify(db, null, 2), "application/json");
+  db.sinceExport = 0; save(); render();
+  toast("Backup downloaded.");
+}
+function importJSON(){
+  var inp = document.createElement("input");
+  inp.type = "file"; inp.accept = "application/json,.json";
+  inp.onchange = function(){
+    var f = inp.files[0];
+    if (!f) return;
+    var fr = new FileReader();
+    fr.onload = function(){
+      try {
+        var d = JSON.parse(fr.result);
+        if (!d.sections || !d.reviews) throw new Error("not a backup file");
+        if (!confirm("Replace everything currently in this browser with the backup? "+
+          d.reviews.length+" ballots will load.")) return;
+        db = d;
+        db.sinceExport = 0;
+        newDraft(); save(); render();
+        toast("Backup loaded.");
+      } catch(e){
+        toast("That file could not be read as a backup.");
+      }
+    };
+    fr.readAsText(f);
+  };
+  inp.click();
+}
+function csvCell(v){
+  v = String(v == null ? "" : v);
+  return /[",\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v;
+}
+function exportSummaryCSV(){
+  var s = section(), sp = speech();
+  var head = ["Section","Student","Speech","Ballots"];
+  db.criteria.forEach(function(c){ head.push(c.label+" mean", c.label+" sum"); });
+  head.push("Overall mean","Cumulative","Possible","Percent");
+  db.tags.forEach(function(t){ head.push(t.label+" +", t.label+" -"); });
+  var lines = [head.map(csvCell).join(",")];
+  s.students.forEach(function(stu){
+    var rs = reviewsFor(stu.id, sp.id), st = computeStats(rs), tt = tagTally(rs);
+    var row = [s.name, stu.name, sp.label, st.count];
+    st.per.forEach(function(p){ row.push(fmt(p.mean), p.sum); });
+    row.push(fmt(st.mean), st.sum, st.possible, fmt(st.pct,1));
+    tt.forEach(function(t){ row.push(t.plus, t.minus); });
+    lines.push(row.map(csvCell).join(","));
+  });
+  download("summary-"+s.name.replace(/\W+/g,"-").toLowerCase()+"-"+stamp()+".csv", lines.join("\n"), "text/csv");
+}
+function exportRawCSV(){
+  var head = ["Section","Student","Speech","Ballot"];
+  db.criteria.forEach(function(c){ head.push(c.label); });
+  head.push("Did well","Work on","Comment");
+  var lines = [head.map(csvCell).join(",")];
+  db.sections.forEach(function(s){
+    s.students.forEach(function(stu){
+      db.speeches.forEach(function(sp){
+        reviewsFor(stu.id, sp.id).forEach(function(r, i){
+          var row = [s.name, stu.name, sp.label, i+1];
+          db.criteria.forEach(function(c){ row.push(r.scores[c.id] == null ? "" : r.scores[c.id]); });
+          var lab = function(id){ var t = byId(db.tags, id); return t ? t.label : ""; };
+          row.push((r.plus||[]).map(lab).join("; "), (r.minus||[]).map(lab).join("; "), r.note || "");
+          lines.push(row.map(csvCell).join(","));
+        });
+      });
+    });
+  });
+  download("all-ballots-"+stamp()+".csv", lines.join("\n"), "text/csv");
+}
+
+/* ============ events ============ */
+document.addEventListener("click", function(e){
+  var el = e.target.closest("[data-act], [data-view]");
+  if (!el) return;
+  var act = el.dataset.act;
+  var id = el.dataset.id;
+
+  if (el.classList.contains("viewbtn")){
+    db.ui.view = el.dataset.view; save(); render(); return;
+  }
+
+  switch(act){
+    case "section":
+      if (!confirmDiscard()) return;
+      db.ui.sectionId = id;
+      var s = byId(db.sections, id);
+      db.ui.studentId = s && s.students.length ? s.students[0].id : null;
+      newDraft(); save(); render(); break;
+
+    case "student":
+      if (!confirmDiscard()) return;
+      db.ui.studentId = id;
+      if (db.ui.view === "class" || db.ui.view === "setup") db.ui.view = "student";
+      newDraft(); save(); render(); break;
+
+    case "go": db.ui.view = el.dataset.view; save(); render(); break;
+
+    case "score":
+      draft.scores[el.dataset.crit] = Number(el.dataset.val);
+      for (var i=0;i<db.criteria.length;i++){
+        if (db.criteria[i].id === el.dataset.crit) draft.active = Math.min(i+1, db.criteria.length-1);
+      }
+      render(); break;
+
+    case "tag":
+      var kind = el.dataset.kind, list = draft[kind];
+      var at = list.indexOf(id);
+      if (at > -1) list.splice(at,1); else list.push(id);
+      render(); break;
+
+    case "addtag": {
+      var label = prompt("New comment category");
+      if (!label || !label.trim()) return;
+      var t = {id: uid("t_"), label: label.trim()};
+      db.tags.push(t);
+      draft[el.dataset.kind].push(t.id);
+      save(); render(); break;
+    }
+    case "addtag2": {
+      var l2 = prompt("New comment category");
+      if (!l2 || !l2.trim()) return;
+      db.tags.push({id: uid("t_"), label: l2.trim()});
+      save(); render(); break;
+    }
+    case "rmtag":
+      if (!confirm("Remove this comment category? Tallies already saved stay in the backup file.")) return;
+      db.tags = db.tags.filter(function(x){ return x.id !== id; });
+      save(); render(); break;
+
+    case "addcrit": {
+      var l3 = prompt("New scored category (1\u20135)");
+      if (!l3 || !l3.trim()) return;
+      db.criteria.push({id: uid("c_"), label: l3.trim()});
+      save(); render(); break;
+    }
+    case "rmcrit":
+      if (db.criteria.length < 2){ toast("Keep at least one scored category."); return; }
+      if (!confirm("Remove this scored category from new ballots?")) return;
+      db.criteria = db.criteria.filter(function(x){ return x.id !== id; });
+      save(); render(); break;
+
+    case "addspeech": {
+      var l4 = prompt("Name of the speech", "Speech " + (db.speeches.length + 1));
+      if (!l4 || !l4.trim()) return;
+      var sp = {id: uid("sp_"), label: l4.trim()};
+      db.speeches.push(sp);
+      db.ui.speechId = sp.id;
+      newDraft(); save(); render(); break;
+    }
+    case "rmspeech":
+      if (db.speeches.length < 2){ toast("Keep at least one speech."); return; }
+      var n = db.reviews.filter(function(r){ return r.speechId === id; }).length;
+      if (!confirm("Remove this speech? "+n+" ballots stop showing in the totals.")) return;
+      db.speeches = db.speeches.filter(function(x){ return x.id !== id; });
+      if (db.ui.speechId === id) db.ui.speechId = db.speeches[0].id;
+      save(); render(); break;
+
+    case "save": saveDraft(); break;
+    case "cancel": newDraft(); render(); break;
+    case "edit": {
+      var r = null;
+      db.reviews.forEach(function(x){ if (x.id === id) r = x; });
+      if (r){ loadDraft(r); render(); }
+      break;
+    }
+    case "delete":
+      if (!confirm("Delete this ballot?")) return;
+      db.reviews = db.reviews.filter(function(x){ return x.id !== id; });
+      newDraft(); save(); render(); break;
+
+    case "saveroster": saveRoster(); break;
+    case "export": exportJSON(); break;
+    case "import": importJSON(); break;
+    case "csv-summary": exportSummaryCSV(); break;
+    case "csv-raw": exportRawCSV(); break;
+    case "print": window.print(); break;
+    case "wipe":
+      if (!confirm("Erase every roster and ballot in this browser? Download a backup first if you want to keep them.")) return;
+      if (!confirm("Last check. This cannot be undone.")) return;
+      db = defaults(); newDraft(); save(); render(); break;
+  }
+});
+
+document.addEventListener("input", function(e){
+  var el = e.target;
+  if (!el.dataset || !el.dataset.act) return;
+  if (el.dataset.act === "note"){ draft.note = el.value; save(); }
+  if (el.dataset.act === "filter"){
+    db.ui.filter = el.value;
+    var pos = el.selectionStart;
+    render();
+    var f = document.querySelector(".rosterfilter");
+    if (f){ f.focus(); f.setSelectionRange(pos, pos); }
+  }
+  if (el.dataset.act === "secname"){ section().name = el.value; save(); renderBar(); }
+  if (el.dataset.act === "target"){ section().target = Math.max(1, Number(el.value) || 24); save(); }
+});
+
+document.getElementById("speechSelect").addEventListener("change", function(e){
+  if (!confirmDiscard()){ e.target.value = db.ui.speechId; return; }
+  db.ui.speechId = e.target.value;
+  newDraft(); save(); render();
+});
+
+document.addEventListener("keydown", function(e){
+  var t = e.target.tagName;
+  if (t === "INPUT" || t === "TEXTAREA" || t === "SELECT"){
+    if (e.key === "Enter" && e.target.dataset.act === "note"){ e.preventDefault(); saveDraft(); }
+    return;
+  }
+  if (db.ui.view !== "entry" || !student()) return;
+
+  if (e.key >= "1" && e.key <= "5"){
+    e.preventDefault();
+    var c = db.criteria[draft.active];
+    if (!c) return;
+    draft.scores[c.id] = Number(e.key);
+    draft.active = Math.min(draft.active + 1, db.criteria.length - 1);
+    render();
+  } else if (e.key === "Enter"){
+    e.preventDefault(); saveDraft();
+  } else if (e.key === "Backspace"){
+    e.preventDefault();
+    draft.active = Math.max(0, draft.active - 1);
+    delete draft.scores[db.criteria[draft.active].id];
+    render();
+  } else if (e.key === "ArrowDown"){
+    e.preventDefault(); draft.active = Math.min(draft.active + 1, db.criteria.length - 1); render();
+  } else if (e.key === "ArrowUp"){
+    e.preventDefault(); draft.active = Math.max(0, draft.active - 1); render();
+  }
+});
+
+function confirmDiscard(){
+  if (!draftDirty()) return true;
+  return confirm("This ballot has not been saved. Leave it?");
+}
+
+window.addEventListener("beforeunload", function(e){
+  if (draftDirty()){ e.preventDefault(); e.returnValue = ""; }
+});
+
+/* ============ start ============ */
+db = load();
+newDraft();
+var anyStudents = db.sections.some(function(s){ return s.students.length; });
+if (!anyStudents) db.ui.view = "setup";
+else if (db.ui.view === "setup") db.ui.view = "entry";
+render();
+
+})();
+</script>
+</body>
+</html>
